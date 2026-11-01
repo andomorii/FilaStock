@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -53,6 +54,7 @@ fun ListScreen(
     onOpen: (Long) -> Unit,
     onAdd: () -> Unit,
     onScan: () -> Unit,
+    onSettings: () -> Unit,
 ) {
     val spools by vm.spools.collectAsStateWithLifecycle()
     var filter by rememberSaveable { mutableStateOf<String?>(null) }
@@ -72,6 +74,9 @@ fun ListScreen(
                 actions = {
                     IconButton(onClick = onScan) {
                         Icon(Icons.Default.QrCodeScanner, contentDescription = "Escanear QR code")
+                    }
+                    IconButton(onClick = onSettings) {
+                        Icon(Icons.Default.Settings, contentDescription = "Configurações")
                     }
                 },
             )
@@ -211,13 +216,16 @@ private fun SpoolCard(spool: Spool, onClick: () -> Unit) {
     val low = spool.isLow
     Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
         Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            ColorDot(spool.colorHex, 44.dp)
+            SpoolThumb(spool, 44.dp)
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
                 Text("${spool.material} · ${spool.colorName}", style = MaterialTheme.typography.titleMedium)
-                if (spool.brand.isNotBlank()) {
+                val subtitle = (listOf(spool.brand) + spool.finishList)
+                    .filter { it.isNotBlank() }
+                    .joinToString(" · ")
+                if (subtitle.isNotEmpty()) {
                     Text(
-                        spool.brand,
+                        subtitle,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

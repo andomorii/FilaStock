@@ -13,8 +13,19 @@ android {
         applicationId = "br.com.filastock"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.2.0"
+    }
+
+    // Chave de assinatura fixa: cada versão nova instala por cima da anterior,
+    // sem precisar desinstalar (e sem perder os dados).
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
     }
 
     buildTypes {
@@ -66,4 +77,8 @@ dependencies {
 
     // Geração de QR code (para imprimir etiquetas dos carretéis)
     implementation("com.google.zxing:core:3.5.3")
+
+    // Fotos dos filamentos
+    implementation("io.coil-kt:coil-compose:2.7.0")
+    implementation("androidx.exifinterface:exifinterface:1.3.7")
 }

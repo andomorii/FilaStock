@@ -1,13 +1,18 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 
 package br.com.filastock.ui
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -15,16 +20,20 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AddPhotoAlternate
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -34,19 +43,28 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.filastock.MainViewModel
 import br.com.filastock.data.COLOR_PRESETS
+import br.com.filastock.data.FINISHES
 import br.com.filastock.data.MATERIALS
 import br.com.filastock.data.Spool
+import br.com.filastock.data.newSpoolCode
+import br.com.filastock.util.PhotoStore
 import br.com.filastock.util.toDoubleBr
+import coil.compose.AsyncImage
+import kotlinx.coroutines.launch
 
 @Composable
 fun EditScreen(
@@ -55,6 +73,8 @@ fun EditScreen(
     scannedCode: String?,
     onDone: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val isNew = id == 0L
     val spoolFlow = remember(id) { vm.spool(id) }
     val existing by spoolFlow.collectAsStateWithLifecycle(initialValue = null)
@@ -68,6 +88,8 @@ fun EditScreen(
     var price by rememberSaveable { mutableStateOf("") }
     var threshold by rememberSaveable { mutableStateOf("100") }
     var notes by rememberSaveable { mutableStateOf("") }
+    var finishesCsv by rememberSaveable { mutableStateOf("") }
+    var photosCsv by rememberSaveable { mutableStateOf("") }
     var loaded by rememberSaveable { mutableStateOf(isNew) }
 
     LaunchedEffect(existing) {
@@ -82,7 +104,24 @@ fun EditScreen(
             price = if (e.price > 0) formatInput(e.price) else ""
             threshold = formatInput(e.lowStockThreshold)
             notes = e.notes
+            finishesCsv = e.finishes
+            photosCsv = e.photos
             loaded = true
+        }
+    }
+
+    val photoNames = photosCsv.split(",").filter { it.isNotBlank() }
+    val selectedFinishes = finishesCsv.split(",").filter { it.isNotBlank() }
+
+    val photoPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickMultipleVisualMedia(8)
+    ) { uris ->
+        if (uris.isNotEmpty()) {
+            scope.launch {
+                val added = uris.mapNotNull { PhotoStore.import(context, it) }
+                val now = photosCsv.split(",").filter { it.isNotBlank() }
+                photosCsv = (now + added).joinToString(",")
+            }
         }
     }
 
@@ -163,6 +202,72 @@ fun EditScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
 
+            Text("Acabamento", style = MaterialTheme.typography.titleSmall)
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                FINISHES.forEach { finish ->
+                    val on = finish in selectedFinishes
+                    FilterChip(
+                        selected = on,
+                        onClick = {
+                            val next = if (on) selectedFinishes - finish else selectedFinishes + finish
+                            finishesCsv = next.joinToString(",")
+                        },
+                        label = { Text(finish) },
+                    )
+                }
+            }
+
+            Text("Fotos", style = MaterialTheme.typography.titleSmall)
+            Text(
+                "Fotografe com boa luz natural: ajuda a ver a cor real.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (photoNames.isNotEmpty()) {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(photoNames) { name ->
+                        Box {
+                            AsyncImage(
+                                model = PhotoStore.file(context, name),
+                                contentDescription = "Foto do filamento",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(96.dp)
+                                    .clip(RoundedCornerShape(12.dp)),
+                            )
+                            IconButton(
+                                onClick = { photosCsv = photoNames.filter { it != name }.joinToString(",") },
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(4.dp)
+                                    .size(28.dp)
+                                    .background(Color(0x99000000), CircleShape),
+                            ) {
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = "Remover foto",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            OutlinedButton(
+                onClick = {
+                    photoPicker.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                },
+            ) {
+                Icon(Icons.Default.AddPhotoAlternate, contentDescription = null)
+                Text("  Adicionar fotos")
+            }
+
             OutlinedTextField(
                 value = brand,
                 onValueChange = { brand = it },
@@ -209,7 +314,7 @@ fun EditScreen(
             OutlinedTextField(
                 value = notes,
                 onValueChange = { notes = it },
-                label = { Text("Observações (opcional)") },
+                label = { Text("Observações internas (não são compartilhadas)") },
                 modifier = Modifier.fillMaxWidth(),
             )
 
@@ -229,10 +334,12 @@ fun EditScreen(
                             price = price.toDoubleBr() ?: 0.0,
                             lowStockThreshold = threshold.toDoubleBr() ?: 0.0,
                             notes = notes.trim(),
+                            finishes = finishesCsv,
+                            photos = photosCsv,
                         )
                     } else {
                         Spool(
-                            code = scannedCode?.takeIf { it.isNotBlank() } ?: br.com.filastock.data.newSpoolCode(),
+                            code = scannedCode?.takeIf { it.isNotBlank() } ?: newSpoolCode(),
                             material = material.trim(),
                             colorName = colorName.trim(),
                             colorHex = colorHex,
@@ -242,8 +349,14 @@ fun EditScreen(
                             price = price.toDoubleBr() ?: 0.0,
                             lowStockThreshold = threshold.toDoubleBr() ?: 0.0,
                             notes = notes.trim(),
+                            finishes = finishesCsv,
+                            photos = photosCsv,
                         )
                     }
+                    // Apaga do aparelho as fotos que foram removidas deste carretel.
+                    existing?.photoList
+                        ?.filter { it !in photoNames }
+                        ?.forEach { PhotoStore.delete(context, it) }
                     vm.save(spool)
                     onDone()
                 },

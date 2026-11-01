@@ -2,6 +2,8 @@ package br.com.filastock.data
 
 val MATERIALS = listOf("PLA", "PLA+", "PLA Silk", "PETG", "ABS", "ASA", "TPU", "PA", "PC")
 
+val FINISHES = listOf("Fosca", "Brilhante", "Translúcida", "Fluorescente", "Neon", "Silk", "Duo")
+
 data class ColorPreset(val name: String, val argb: Long)
 
 val COLOR_PRESETS = listOf(

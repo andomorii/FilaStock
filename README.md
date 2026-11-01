@@ -1,25 +1,28 @@
 # FilaStock
 
-App Android para controlar o estoque de filamentos de impressão 3D: tipo, cor, marca, gramas restantes, custo e histórico de uso. Funciona offline (os dados ficam no celular).
+App Android para controlar o estoque de filamentos de impressão 3D: tipo, cor, marca, acabamento, fotos, gramas restantes, custo e histórico de uso. Funciona offline (os dados ficam no celular).
 
-## Etapa 1 (esta versão)
+## O que já faz (versão 0.2.0)
 
 - Cadastro de carretéis: material, cor, marca, peso inicial e atual, preço, observações
+- Acabamento (fosca, brilhante, translúcida, fluorescente, neon, silk, duo) e várias fotos por carretel
+- Compartilhar com cliente (WhatsApp etc.): foto + características, sem preço, gramas nem observações
 - Lista com busca, filtro por material e resumo do estoque (kg e valor)
-- Registrar uso em gramas, com custo calculado e histórico
-- Pesar o carretel na balança para corrigir o peso restante
-- Alerta de estoque baixo (faixa na lista e notificação quando o carretel cruza o limite)
-- QR code por carretel: o app gera a etiqueta para imprimir e lê o QR pela câmera
+- Registrar uso em gramas, com custo calculado e histórico; pesar o carretel para corrigir o peso
+- Alerta de estoque baixo (faixa na lista e notificação)
+- QR code por carretel: gera a etiqueta para imprimir e lê pela câmera
+- Configurações da impressora Bambu Lab: IP, número de série (com leitura de QR), código de acesso e teste de conexão
 
-## Como gerar o APK
+## Ainda não faz
 
-1. Suba todos os arquivos deste projeto para o repositório (incluindo a pasta oculta `.github`).
-2. No GitHub, abra a aba **Actions**. O workflow **Build APK** roda sozinho a cada envio (ou use **Run workflow**).
-3. Quando terminar (uns 5 a 10 minutos), abra a execução e baixe **FilaStock-apk** em *Artifacts*.
-4. Extraia o .zip, copie o `app-debug.apk` para o celular e instale (o Android pede para permitir instalação de fontes desconhecidas).
+- Descontar filamento automaticamente a cada impressão (leitura da A1 e do AMS lite)
+- Importar o .3mf do Bambu Studio
+- Sincronização na nuvem, lista de compras, NFC
 
-## Próximas etapas
+## Como gerar o APK (só pelo celular)
 
-2. Importar o arquivo .3mf do Bambu Studio e descontar os gramas por cor
-3. Conexão com a Bambu Lab A1 (modo LAN) e leitura dos slots do AMS lite
-4. Sincronização na nuvem, lista de compras e NFC
+1. No repositório, o arquivo `.github/workflows/build.yml` já extrai o zip e compila.
+2. Suba o `FilaStock.zip` (Add file → Upload files). Isso dispara a compilação.
+3. Na aba **Actions**, baixe **FilaStock-apk** em *Artifacts*, extraia e instale o `app-debug.apk`.
+
+A partir da versão 0.2.0 o APK usa uma chave de assinatura fixa, então as próximas versões instalam por cima da anterior sem perder dados. A transição da 0.1.0 para a 0.2.0 exige desinstalar a antiga uma vez.

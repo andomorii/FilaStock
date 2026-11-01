@@ -2,7 +2,10 @@ package br.com.filastock.ui
 
 import android.net.Uri
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -24,6 +27,7 @@ fun AppNav(vm: MainViewModel) {
                 onOpen = { nav.navigate("detail/$it") },
                 onAdd = { nav.navigate("edit/0") },
                 onScan = { nav.navigate("scan") },
+                onSettings = { nav.navigate("settings") },
             )
         }
 
@@ -74,6 +78,29 @@ fun AppNav(vm: MainViewModel) {
                             nav.navigate("edit/0?code=${Uri.encode(code)}")
                         }
                     }
+                },
+            )
+        }
+
+        composable("settings") { entry ->
+            val serialFlow = remember(entry) { entry.savedStateHandle.getStateFlow<String?>("serial", null) }
+            val scanned by serialFlow.collectAsStateWithLifecycle()
+            SettingsScreen(
+                vm = vm,
+                scannedSerial = scanned,
+                onSerialConsumed = { entry.savedStateHandle["serial"] = null },
+                onScanSerial = { nav.navigate("scan_serial") },
+                onBack = { nav.popBackStack() },
+            )
+        }
+
+        // Lê o QR da etiqueta da impressora e devolve o texto para a tela de configurações.
+        composable("scan_serial") {
+            ScanScreen(
+                onBack = { nav.popBackStack() },
+                onResult = { raw ->
+                    nav.previousBackStackEntry?.savedStateHandle?.set("serial", raw)
+                    nav.popBackStack()
                 },
             )
         }

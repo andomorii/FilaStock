@@ -24,7 +24,15 @@ data class Spool(
     val lowStockThreshold: Double = 100.0,
     val notes: String = "",
     val createdAt: Long = System.currentTimeMillis(),
+    /** Acabamentos separados por vírgula (ex.: "Silk,Duo"). */
+    val finishes: String = "",
+    /** Nomes dos arquivos de foto, separados por vírgula. */
+    val photos: String = "",
 ) {
+    val finishList: List<String>
+        get() = finishes.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+    val photoList: List<String>
+        get() = photos.split(",").map { it.trim() }.filter { it.isNotEmpty() }
     val isLow: Boolean get() = currentWeight <= lowStockThreshold
     val fraction: Float
         get() = if (initialWeight > 0) (currentWeight / initialWeight).toFloat().coerceIn(0f, 1f) else 0f
