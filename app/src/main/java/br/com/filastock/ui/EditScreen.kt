@@ -2,6 +2,9 @@
 
 package br.com.filastock.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -13,6 +16,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -27,6 +31,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -54,6 +59,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.filastock.MainViewModel
 import br.com.filastock.data.COLOR_PRESETS
@@ -65,6 +72,8 @@ import br.com.filastock.util.PhotoStore
 import br.com.filastock.util.toDoubleBr
 import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
+import java.io.File
+import java.util.UUID
 
 @Composable
 fun EditScreen(
@@ -123,6 +132,42 @@ fun EditScreen(
                 photosCsv = (now + added).joinToString(",")
             }
         }
+    }
+
+    // Foto tirada pela câmera: a câmera grava num arquivo temporário, que depois é
+    // importado (reduzido e girado certo) e apagado.
+    var capturePath by rememberSaveable { mutableStateOf<String?>(null) }
+    val takePicture = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
+        val path = capturePath
+        capturePath = null
+        if (path != null) {
+            val temp = File(path)
+            if (ok) {
+                scope.launch {
+                    val uri = FileProvider.getUriForFile(context, context.packageName + ".fileprovider", temp)
+                    val name = PhotoStore.import(context, uri)
+                    temp.delete()
+                    if (name != null) {
+                        val now = photosCsv.split(",").filter { it.isNotBlank() }
+                        photosCsv = (now + name).joinToString(",")
+                    }
+                }
+            } else {
+                temp.delete()
+            }
+        }
+    }
+    fun startCapture() {
+        val dir = File(context.cacheDir, "capture").apply { mkdirs() }
+        val file = File(dir, UUID.randomUUID().toString() + ".jpg")
+        capturePath = file.absolutePath
+        val uri: Uri = FileProvider.getUriForFile(context, context.packageName + ".fileprovider", file)
+        takePicture.launch(uri)
+    }
+    // O app declara a permissão de câmera (para ler QR code), então ela precisa estar
+    // concedida antes de abrir a câmera do celular.
+    val cameraPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) startCapture()
     }
 
     val initialValue = initial.toDoubleBr()
@@ -257,15 +302,29 @@ fun EditScreen(
                     }
                 }
             }
-            OutlinedButton(
-                onClick = {
-                    photoPicker.launch(
-                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                    )
-                },
-            ) {
-                Icon(Icons.Default.AddPhotoAlternate, contentDescription = null)
-                Text("  Adicionar fotos")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+                            PackageManager.PERMISSION_GRANTED
+                        if (granted) startCapture() else cameraPermission.launch(Manifest.permission.CAMERA)
+                    },
+                ) {
+                    Icon(Icons.Default.PhotoCamera, contentDescription = null)
+                    Text("  Tirar foto")
+                }
+                OutlinedButton(
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        photoPicker.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    },
+                ) {
+                    Icon(Icons.Default.AddPhotoAlternate, contentDescription = null)
+                    Text("  Galeria")
+                }
             }
 
             OutlinedTextField(

@@ -2,10 +2,10 @@
 
 App Android para controlar o estoque de filamentos de impressão 3D: tipo, cor, marca, acabamento, fotos, gramas restantes, custo e histórico de uso. Funciona offline (os dados ficam no celular).
 
-## O que já faz (versão 0.2.0)
+## O que já faz (versão 0.2.1)
 
 - Cadastro de carretéis: material, cor, marca, peso inicial e atual, preço, observações
-- Acabamento (fosca, brilhante, translúcida, fluorescente, neon, silk, duo) e várias fotos por carretel
+- Acabamento (fosca, brilhante, translúcida, fluorescente, neon, silk, duo) e várias fotos por carretel (tiradas na hora pela câmera ou escolhidas da galeria)
 - Compartilhar com cliente (WhatsApp etc.): foto + características, sem preço, gramas nem observações
 - Lista com busca, filtro por material e resumo do estoque (kg e valor)
 - Registrar uso em gramas, com custo calculado e histórico; pesar o carretel para corrigir o peso
